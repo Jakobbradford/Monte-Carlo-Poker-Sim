@@ -1,0 +1,88 @@
+import random
+
+class Card:
+    def __init__(self, suit, rank):
+        self.suit = suit
+        self.rank = rank
+
+    def __repr__(self):
+        return f"{self.rank}{self.suit}"
+
+class Deck:
+    def __init__(self):
+        suits = ['♠', '♥', '♦', '♣']  # Spades, Hearts, Diamonds, Clubs
+        ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+        self.cards = [Card(suit, rank) for suit in suits for rank in ranks]
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    def deal(self, num_cards):
+        if num_cards > len(self.cards):
+            raise ValueError("Not enough cards left to deal.")
+        dealt_cards = self.cards[:num_cards]
+        self.cards = self.cards[num_cards:]
+        return dealt_cards
+
+def evaluate_hand(hand):
+    """Evaluate the strength of a poker hand."""
+    rank_order = {str(i): i for i in range(2, 11)}
+    rank_order.update({"J": 11, "Q": 12, "K": 13, "A": 14})
+
+    # Sort cards by rank
+    sorted_hand = sorted(hand, key=lambda card: rank_order[card.rank], reverse=True)
+
+    # Count occurrences of each rank
+    rank_counts = {}
+    for card in hand:
+        rank_counts[card.rank] = rank_counts.get(card.rank, 0) + 1
+
+    counts = list(rank_counts.values())
+    is_flush = len(set(card.suit for card in hand)) == 1
+    is_straight = (
+        len(rank_counts) == len(hand) and 
+        rank_order[sorted_hand[0].rank] - rank_order[sorted_hand[-1].rank] == len(hand) - 1
+    )
+
+    if is_straight and is_flush:
+        return "Straight Flush"
+    elif 4 in counts:
+        return "Four of a Kind"
+    elif 3 in counts and 2 in counts:
+        return "Full House"
+    elif is_flush:
+        return "Flush"
+    elif is_straight:
+        return "Straight"
+    elif 3 in counts:
+        return "Three of a Kind"
+    elif counts.count(2) == 2:
+        return "Two Pair"
+    elif 2 in counts:
+        return "One Pair"
+    else:
+        return "High Card"
+
+# Example Usage
+def main():
+    # Create and shuffle the deck
+    deck = Deck()
+    deck.shuffle()
+
+    # Deal two cards to the player
+    player_hand = deck.deal(5)  # Deal 5 cards for evaluation
+    print("Player's Hand:", player_hand)
+
+    # Evaluate the player's hand
+    hand_rank = evaluate_hand(player_hand)
+    print("Player's Hand Rank:", hand_rank)
+
+    # Deal two cards to each opponent (up to 8 opponents)
+    num_opponents = 3  # Change this to test different numbers of opponents
+    opponents_hands = [deck.deal(5) for _ in range(num_opponents)]
+    for i, hand in enumerate(opponents_hands, start=1):
+        print(f"Opponent {i}'s Hand:", hand)
+        print(f"Opponent {i}'s Hand Rank:", evaluate_hand(hand))
+
+if __name__ == "__main__":
+    main()
