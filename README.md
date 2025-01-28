@@ -1,4 +1,4 @@
-# Monte_Carlo_Poker_Sim
+# Poker Simulations
 
 Poker Game with Monte Carlo Simulations
 This Python project is a poker game designed to help new players understand their odds of winning at a table with up to 8 opponents. The program provides a command-line interface where players can:
