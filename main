@@ -65,42 +65,33 @@ def evaluate_hand(hand):
 
 def simulate_win_probability(player_hand, opponents_hands, num_simulations=1000):
     """Simulate win probabilities using Monte Carlo simulations."""
-    wins = 0
-    ties = 0
+    hands = [player_hand] + opponents_hands
+    win_counts = {i: 0 for i in range(len(hands))}
 
     for _ in range(num_simulations):
-        # Create a new deck for each simulation
         deck = Deck()
-        # Remove cards already in play
-        in_play = player_hand + [card for hand in opponents_hands for card in hand]
+        in_play = [card for hand in hands for card in hand]
         deck.cards = [card for card in deck.cards if card not in in_play]
         deck.shuffle()
 
-        # Deal community cards
         try:
             community_cards = deck.deal(5)
         except ValueError:
-            continue  # Skip simulation if not enough cards
+            continue
 
-        player_final_hand = player_hand + community_cards
-        opponent_final_hands = [hand + community_cards for hand in opponents_hands]
+        final_hands = [hand + community_cards for hand in hands]
+        hand_ranks = [evaluate_hand(hand) for hand in final_hands]
 
-        player_rank = evaluate_hand(player_final_hand)
-        opponent_ranks = [evaluate_hand(opponent_hand) for opponent_hand in opponent_final_hands]
+        best_rank = max(hand_ranks)
+        winners = [i for i, rank in enumerate(hand_ranks) if rank == best_rank]
 
-        if all(player_rank > opponent_rank for opponent_rank in opponent_ranks):
-            wins += 1
-        elif any(player_rank == opponent_rank for opponent_rank in opponent_ranks):
-            ties += 1
+        for winner in winners:
+            win_counts[winner] += 1 / len(winners)
 
-    total_simulations = num_simulations
-    win_probability = (wins / total_simulations) * 100
-    tie_probability = (ties / total_simulations) * 100
-
-    return win_probability, tie_probability
+    win_probabilities = {i: (win_counts[i] / num_simulations) * 100 for i in range(len(hands))}
+    return win_probabilities
 
 def main():
-    # Ask for the number of opponents
     while True:
         try:
             num_opponents = int(input("Enter the number of opponents (1-8): "))
@@ -111,23 +102,22 @@ def main():
         except ValueError:
             print("Invalid input. Please enter a number between 1 and 8.")
 
-    # Create and shuffle the deck
     deck = Deck()
     deck.shuffle()
 
-    # Deal two cards to the player
     player_hand = deck.deal(2)
-    print("Player's Hand:", player_hand)
-
-    # Deal two cards to each opponent
     opponents_hands = [deck.deal(2) for _ in range(num_opponents)]
-    for i, hand in enumerate(opponents_hands, start=1):
-        print(f"Opponent {i}'s Hand:", hand)
 
-    # Simulate win probabilities
-    win_prob, tie_prob = simulate_win_probability(player_hand, opponents_hands)
-    print(f"Win Probability: {win_prob:.2f}%")
-    print(f"Tie Probability: {tie_prob:.2f}%")
+    print("\nInitial Hands:")
+    print("Player: ", player_hand)
+    for i, hand in enumerate(opponents_hands, start=1):
+        print(f"Opponent {i}: {hand}")
+
+    win_probabilities = simulate_win_probability(player_hand, opponents_hands)
+    print("\nWin Probabilities:")
+    print(f"Player: {win_probabilities[0]:.2f}%")
+    for i in range(1, num_opponents + 1):
+        print(f"Opponent {i}: {win_probabilities[i]:.2f}%")
 
 if __name__ == "__main__":
     main()
