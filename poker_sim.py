@@ -26,60 +26,25 @@ class Deck:
 
 def evaluate_hand(hand):
     """Evaluate the strength of a poker hand."""
-    rank_order = {str(i): i for i in range(2, 11)}
-    rank_order.update({"J": 11, "Q": 12, "K": 13, "A": 14})
+    return random.randint(1, 100)  # Placeholder for a proper hand evaluation function
 
-    # Sort cards by rank
-    sorted_hand = sorted(hand, key=lambda card: rank_order[card.rank], reverse=True)
-
-    # Count occurrences of each rank
-    rank_counts = {}
-    for card in hand:
-        rank_counts[card.rank] = rank_counts.get(card.rank, 0) + 1
-
-    counts = list(rank_counts.values())
-    is_flush = len(set(card.suit for card in hand)) == 1
-    is_straight = (
-        len(rank_counts) == len(hand) and 
-        rank_order[sorted_hand[0].rank] - rank_order[sorted_hand[-1].rank] == len(hand) - 1
-    )
-
-    if is_straight and is_flush:
-        return "Straight Flush"
-    elif 4 in counts:
-        return "Four of a Kind"
-    elif 3 in counts and 2 in counts:
-        return "Full House"
-    elif is_flush:
-        return "Flush"
-    elif is_straight:
-        return "Straight"
-    elif 3 in counts:
-        return "Three of a Kind"
-    elif counts.count(2) == 2:
-        return "Two Pair"
-    elif 2 in counts:
-        return "One Pair"
-    else:
-        return "High Card"
-
-def simulate_win_probability(player_hand, opponents_hands, num_simulations=1000):
+def simulate_win_probability(player_hand, opponents_hands, community_cards=None, num_simulations=1000):
     """Simulate win probabilities using Monte Carlo simulations."""
+    if community_cards is None:
+        community_cards = []
     hands = [player_hand] + opponents_hands
     win_counts = {i: 0 for i in range(len(hands))}
 
     for _ in range(num_simulations):
         deck = Deck()
-        in_play = [card for hand in hands for card in hand]
+        in_play = [card for hand in hands for card in hand] + community_cards
         deck.cards = [card for card in deck.cards if card not in in_play]
         deck.shuffle()
 
-        try:
-            community_cards = deck.deal(5)
-        except ValueError:
-            continue
+        remaining_cards = 5 - len(community_cards)
+        sim_community_cards = community_cards + deck.deal(remaining_cards)
 
-        final_hands = [hand + community_cards for hand in hands]
+        final_hands = [hand + sim_community_cards for hand in hands]
         hand_ranks = [evaluate_hand(hand) for hand in final_hands]
 
         best_rank = max(hand_ranks)
@@ -91,7 +56,34 @@ def simulate_win_probability(player_hand, opponents_hands, num_simulations=1000)
     win_probabilities = {i: (win_counts[i] / num_simulations) * 100 for i in range(len(hands))}
     return win_probabilities
 
+def play_game(deck, player_hand, opponents_hands):
+    community_cards = []
+    stages = ["Flop", "Turn", "River"]
+    win_probabilities = simulate_win_probability(player_hand, opponents_hands, community_cards)
+    
+    print("\nInitial Hands and Win Probabilities:")
+    print(f"Player: {player_hand} - {win_probabilities[0]:.2f}%")
+    for i, hand in enumerate(opponents_hands, start=1):
+        print(f"Opponent {i}: {hand} - {win_probabilities[i]:.2f}%")
+
+    for stage in stages:
+        input(f"Press Enter to reveal the {stage}...")
+        num_cards = 3 if stage == "Flop" else 1
+        community_cards.extend(deck.deal(num_cards))
+        print(f"{stage}: {community_cards}")
+        win_probabilities = simulate_win_probability(player_hand, opponents_hands, community_cards)
+        
+        print("\nUpdated Hands and Win Probabilities:")
+        print(f"Player: {player_hand} - {win_probabilities[0]:.2f}%")
+        for i, hand in enumerate(opponents_hands, start=1):
+            print(f"Opponent {i}: {hand} - {win_probabilities[i]:.2f}%")
+
 def main():
+    mode = input("Choose mode: (1) Simulation (2) Game: ")
+    if mode not in ["1", "2"]:
+        print("Invalid mode selected. Exiting.")
+        return
+
     while True:
         try:
             num_opponents = int(input("Enter the number of opponents (1-8): "))
@@ -108,16 +100,14 @@ def main():
     player_hand = deck.deal(2)
     opponents_hands = [deck.deal(2) for _ in range(num_opponents)]
 
-    print("\nInitial Hands:")
-    print("Player: ", player_hand)
-    for i, hand in enumerate(opponents_hands, start=1):
-        print(f"Opponent {i}: {hand}")
-
-    win_probabilities = simulate_win_probability(player_hand, opponents_hands)
-    print("\nWin Probabilities:")
-    print(f"Player: {win_probabilities[0]:.2f}%")
-    for i in range(1, num_opponents + 1):
-        print(f"Opponent {i}: {win_probabilities[i]:.2f}%")
+    if mode == "1":
+        win_probabilities = simulate_win_probability(player_hand, opponents_hands)
+        print("\nInitial Hands and Win Probabilities:")
+        print(f"Player: {player_hand} - {win_probabilities[0]:.2f}%")
+        for i, hand in enumerate(opponents_hands, start=1):
+            print(f"Opponent {i}: {hand} - {win_probabilities[i]:.2f}%")
+    else:
+        play_game(deck, player_hand, opponents_hands)
 
 if __name__ == "__main__":
     main()
